@@ -55,8 +55,13 @@ window.addEventListener("resize", () => {
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.01, 10000);
-camera.position.set(0.0, 0.0, 150);
+const camera = new THREE.PerspectiveCamera(
+  75,
+  sizes.width / sizes.height,
+  0.01,
+  10000
+);
+camera.position.set(0.0, 0.0, 300);
 scene.add(camera);
 
 // Controls
@@ -71,20 +76,90 @@ const raycaster = new THREE.Raycaster();
 /**
  * Mouse
  */
-const mouse = new THREE.Vector2({ x: null, y: null });
+
+const mouse = new THREE.Vector2({ x: null, y: null, radius: null });
 let trail = [];
 let timer;
 let mouseMoving;
 window.addEventListener("mousemove", (event) => {
   mouse.x = (event.clientX / sizes.width) * 2 - 1;
   mouse.y = -(event.clientY / sizes.height) * 2 + 1;
-  mouseMoving = true;
-  clearTimeout(timer);
-  timer = setTimeout(mouseStopped, 300);
-});
+  mouse.radius = 1.0;
 
+  addPointToTrail();
+});
+/*
 function mouseStopped() {
   mouseMoving = false;
+
+  for (let i = 0; i < trail.length; i++) {
+    gsap.to(trail[i], {
+      x: 100,
+      duration: 2,
+      onComplete: () => {
+        console.log("we shift the first point in the array after 2 seconds");
+        const removedPoint = trail.shift();
+
+        //if (removedPoint) ctx.clearRect(removedPoint.x * canvasWidth, canvasHeight - removedPoint.y * canvasHeight, 5, 5);
+      },
+    });
+  }
+}
+*/
+
+function addPointToTrail() {
+  raycaster.setFromCamera(mouse, camera);
+
+  const objectsToTest = [planeMesh];
+  const intersects = raycaster.intersectObjects(objectsToTest);
+  if (intersects.length > 0) {
+    const currentPoint = intersects[0].uv;
+    trail.push(currentPoint);
+    currentPoint.radius = 1.0;
+
+    material.uniforms.uMouse.value = currentPoint; //JSON.parse(JSON.stringify(intersects[0].uv));
+    drawTrail(currentPoint);
+  }
+}
+
+function drawTrail(currentPoint) {
+  ctx.beginPath();
+  ctx.arc(
+    currentPoint.x * canvasWidth,
+    canvasHeight - currentPoint.y * canvasHeight,
+    currentPoint.radius,
+    0,
+    2 * Math.PI,
+    false
+  );
+  ctx.fill();
+  /*
+  const t1 = gsap.timeline();
+  t1.to(currentPoint, {
+    x: 0,
+    duration: 3,
+    onUpdate: animatePoint(currentPoint),
+  }).to(currentPoint, {
+    x: 100,
+    duration: 3,
+    onUpdate: animatePoint(currentPoint),
+  });
+  */
+}
+
+function animatePoint(point) {
+  console.log("animate point is called");
+  console.log(point.x);
+  ctx.beginPath();
+  ctx.arc(
+    point.x * canvasWidth,
+    canvasHeight - point.y * canvasHeight,
+    3,
+    0,
+    2 * Math.PI,
+    false
+  );
+  ctx.fill();
 }
 
 /**
@@ -100,7 +175,7 @@ ctx.canvas.width = 256;
 ctx.canvas.height = 256;
 const canvasWidth = ctx.canvas.width;
 const canvasHeight = ctx.canvas.height;
-ctx.fillStyle = "#FFFFFF";
+ctx.fillStyle = "#000000";
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 ctx.fillStyle = "#FF0000";
 
@@ -131,7 +206,9 @@ uvs.setXYZ(3, 1.0, 1.0);
 geometry.setAttribute("uv", uvs);
 
 // index
-geometry.setIndex(new THREE.BufferAttribute(new Uint16Array([0, 2, 1, 2, 3, 1]), 1));
+geometry.setIndex(
+  new THREE.BufferAttribute(new Uint16Array([0, 2, 1, 2, 3, 1]), 1)
+);
 
 let mesh;
 let colors;
@@ -144,7 +221,7 @@ let material;
 let imageWidth;
 let imageHeight;
 const imageScale = 1;
-const animalTexture = textureLoader.load("/images/shahad.jpg", (texture) => {
+const animalTexture = textureLoader.load("/images/lion.jpg", (texture) => {
   const width = texture.image.width;
   const height = texture.image.height;
 
@@ -173,8 +250,14 @@ const animalTexture = textureLoader.load("/images/shahad.jpg", (texture) => {
     pindex[i] = i;
   }
 
-  geometry.setAttribute("aOffset", new THREE.InstancedBufferAttribute(offset, 3, false));
-  geometry.setAttribute("aPindex", new THREE.InstancedBufferAttribute(pindex, 1, false));
+  geometry.setAttribute(
+    "aOffset",
+    new THREE.InstancedBufferAttribute(offset, 3, false)
+  );
+  geometry.setAttribute(
+    "aPindex",
+    new THREE.InstancedBufferAttribute(pindex, 1, false)
+  );
 });
 
 /**
@@ -186,7 +269,9 @@ material = new THREE.RawShaderMaterial({
   uniforms: {
     uTime: { value: 0 },
     uTexture: { value: animalTexture },
-    uTextureSize: { value: new THREE.Vector2(300 * imageScale, 225 * imageScale) },
+    uTextureSize: {
+      value: new THREE.Vector2(550 * imageScale, 550 * imageScale),
+    },
     uRandomness: { value: 0 },
     uMouse: { value: new THREE.Vector2(0, 0) },
     //blending: THREE.AdditiveBlending,
@@ -203,9 +288,12 @@ mesh = new THREE.Mesh(geometry, material);
 scene.add(mesh);
 
 //Debugging plane
-const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
+const planeMaterial = new THREE.MeshBasicMaterial({
+  color: 0x0000ff,
+  wireframe: true,
+});
 const planeMesh = new THREE.Mesh(mousePlane, planeMaterial);
-planeMesh.scale.set(300, 225, 1);
+planeMesh.scale.set(550, 550, 1);
 scene.add(planeMesh);
 
 planeMesh.position.z = 0;
@@ -253,8 +341,10 @@ const tick = () => {
   raycaster.setFromCamera(mouse, camera);
 
   const objectsToTest = [planeMesh];
+
   const intersects = raycaster.intersectObjects(objectsToTest);
-  console.log(mouse);
+
+  /*
   //Drawing on canvas
   if (intersects.length > 0) {
     //console.log(intersects[0].uv);
@@ -262,16 +352,27 @@ const tick = () => {
     let previousPoint = trail[trail.length - 1];
 
     material.uniforms.uMouse.value = currentPoint;
+
     if (mouseMoving) {
       if (!previousPoint) {
         previousPoint = { x: null, y: null };
         console.log("There is no previous point so we push the current point");
         trail.push(currentPoint);
-      } else if (currentPoint.x !== previousPoint.x && currentPoint.y !== previousPoint.y) {
+      } else if (
+        currentPoint.x !== previousPoint.x &&
+        currentPoint.y !== previousPoint.y
+      ) {
         trail.push(currentPoint);
 
-        ctx.fillRect(currentPoint.x * canvasWidth, canvasHeight - currentPoint.y * canvasHeight, 5, 5);
-        console.log("The previous point is different so we push the current point");
+        ctx.fillRect(
+          currentPoint.x * canvasWidth,
+          canvasHeight - currentPoint.y * canvasHeight,
+          5,
+          5
+        );
+        console.log(
+          "The previous point is different so we push the current point"
+        );
       }
     }
     for (let i = 0; i < trail.length; i++) {
@@ -287,7 +388,7 @@ const tick = () => {
       });
     }
   }
-
+  */
   //Update shader time
   material.uniforms.uTime.value = elapsedTime;
 

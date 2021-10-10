@@ -27,7 +27,7 @@ void main(){
     strength =gray * strength * 3.0;
     vec3 finalColor = textureColor.rgb *strength * 3.0;
 
-    gl_FragColor = vec4(finalColor, alpha);
+    gl_FragColor = vec4(strength, strength, strength, alpha);
     //gl_FragColor = vec4(textureColor);
 
 }
