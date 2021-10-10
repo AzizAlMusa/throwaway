@@ -85,8 +85,8 @@ void main(){
     float gray = 0.21 * textureColor.r + 0.71 * textureColor.g + 0.07 * textureColor.b ;
 
     //Mouse canvas texture
-    vec4 mouseTexture = texture2D(uCanvas, puv);
-    float canvasGray = 0.21 * textureColor.r + 0.71 * textureColor.g + 0.07 * textureColor.b ;
+    float mouseTexture = texture2D(uCanvas, puv).r;
+    //float canvasGray = 0.21 * textureColor.r + 0.71 * textureColor.g + 0.07 * textureColor.b ;
 
     //Size noise
     float psize = (noise(vec2(uTime*0.1, aPindex) * 5.0) +12.0);
@@ -102,8 +102,8 @@ void main(){
     float mouseDistance =  clamp((0.15- distance(uMouse, puv) )* 20.0 , 0.0, 1.0);
     //mouseDistance =  smoothstep(0.0, 1.0, mouseDistance);
     //randomMovement.xy += mouseDistance* 10.0;
-    randomMovement.x += (fbm(aOffset.x + aPindex + uTime * 0.1)-0.5) *5.0 * uRandomness  + (1.0* canvasGray);//(1.0 + mouseDistance*10.0);
-    randomMovement.y += (fbm(aOffset.y + aPindex + uTime * 0.1)-0.5) * 5.0 * uRandomness + (1.0*canvasGray);//(1.0 + mouseDistance* 10.0);
+    randomMovement.x += (fbm(aOffset.x + aPindex + uTime * 0.1)-0.5) *5.0 * uRandomness  * (1.0 +50.0* (mouseTexture ) );//(1.0 + mouseDistance*10.0);
+    randomMovement.y += (fbm(aOffset.y + aPindex + uTime * 0.1)-0.5) * 5.0 * uRandomness * (1.0 + 50.0* (mouseTexture));//(1.0 + mouseDistance* 10.0);
     //randomMovement.xy *= uRandomness;
     float rndz = (random(aPindex) + noise(vec2(aPindex * 0.1, uTime * 0.3)));
     randomMovement.z += rndz * (random(aPindex) * 1.0 * 4.0);

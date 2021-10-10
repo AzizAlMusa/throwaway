@@ -7,6 +7,12 @@ import * as dat from "dat.gui";
 import basicVertexShader from "/src/shaders/BasicShader/vertex.glsl";
 import basicFragmentShader from "/src/shaders/BasicShader/fragment.glsl";
 import { TriangleFanDrawMode } from "three";
+import mainImage from "/static/images/shahad.jpg";
+
+const img = new Image();
+img.src = mainImage;
+const imgWidth = img.width;
+const imgHeight = img.height;
 
 /**
  * debugger
@@ -55,13 +61,8 @@ window.addEventListener("resize", () => {
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(
-  75,
-  sizes.width / sizes.height,
-  0.01,
-  10000
-);
-camera.position.set(0.0, 0.0, 300);
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.01, 10000);
+camera.position.set(0.0, 0.0, 150);
 scene.add(camera);
 
 // Controls
@@ -80,13 +81,13 @@ const mouseCanvas = document.createElement("canvas");
 const ctx = mouseCanvas.getContext("2d");
 document.body.appendChild(ctx.canvas);
 mouseCanvas.id = "mouse-canvas";
-ctx.canvas.width = 550;
-ctx.canvas.height = 550;
+ctx.canvas.width = imgWidth;
+ctx.canvas.height = imgHeight;
 
 const canvasWidth = ctx.canvas.width;
 const canvasHeight = ctx.canvas.height;
-
-ctx.fillStyle = "#000000";
+console.log(canvasWidth);
+ctx.fillStyle = "000000";
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 ctx.fillStyle = "#FF0000";
 
@@ -102,16 +103,22 @@ function resetCanvas() {
 
 const mouse = new THREE.Vector2({ x: null, y: null, radius: null });
 let trail = [];
-let canvasImage;
-let capturedTexture = new THREE.Texture(mouseCanvas);
+
+let capturedTexture = new THREE.CanvasTexture(mouseCanvas);
+capturedTexture.needsUpdate = true;
+
 window.addEventListener("mousemove", (event) => {
   mouse.x = (event.clientX / sizes.width) * 2 - 1;
   mouse.y = -(event.clientY / sizes.height) * 2 + 1;
   mouse.radius = 1.0;
 
+  // track mouse trail
   updateTrail();
 });
 
+/**
+ * Mouse trail
+ */
 //Update trail array
 function updateTrail() {
   raycaster.setFromCamera(mouse, camera);
@@ -131,7 +138,7 @@ function updateTrail() {
 
     const t1 = gsap.timeline();
     t1.to(currentPoint, {
-      radius: 20,
+      radius: 30,
       duration: 1,
       ease: "sine.out",
     }).to(currentPoint, {
@@ -145,21 +152,18 @@ function updateTrail() {
   }
 }
 
+/**
+ * Draw trail
+ */
 function drawTrail() {
   resetCanvas();
   trail.forEach((point, i) => {
     const x = point.x * canvasWidth;
     const y = canvasHeight - point.y * canvasHeight;
     const radius = point.radius;
+
     ctx.beginPath();
-    const gradient = ctx.createRadialGradient(
-      x,
-      y,
-      point.radius / 2,
-      x,
-      y,
-      point.radius
-    );
+    const gradient = ctx.createRadialGradient(x, y, point.radius / 2, x, y, point.radius);
     gradient.addColorStop(0, "rgba(255, 255, 255, 0.2)");
     gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = gradient;
@@ -167,15 +171,9 @@ function drawTrail() {
     ctx.fill();
   });
 
-  //canvasImage = mouseCanvas.toDataURL("image/png");
-
-  capturedTexture.needsUpate = true;
+  //This update is key to capture changes in canvas
+  capturedTexture.needsUpdate = true;
 }
-
-/**
- * Draw and manage trail
- */
-function updateTrailTexture() {}
 
 /**
  * Geometry
@@ -204,9 +202,7 @@ uvs.setXYZ(3, 1.0, 1.0);
 geometry.setAttribute("uv", uvs);
 
 // index
-geometry.setIndex(
-  new THREE.BufferAttribute(new Uint16Array([0, 2, 1, 2, 3, 1]), 1)
-);
+geometry.setIndex(new THREE.BufferAttribute(new Uint16Array([0, 2, 1, 2, 3, 1]), 1));
 
 let mesh;
 let colors;
@@ -219,7 +215,7 @@ let material;
 let imageWidth;
 let imageHeight;
 const imageScale = 1;
-const animalTexture = textureLoader.load("/images/lion.jpg", (texture) => {
+const animalTexture = textureLoader.load("/images/shahad.jpg", (texture) => {
   const width = texture.image.width;
   const height = texture.image.height;
 
@@ -248,14 +244,8 @@ const animalTexture = textureLoader.load("/images/lion.jpg", (texture) => {
     pindex[i] = i;
   }
 
-  geometry.setAttribute(
-    "aOffset",
-    new THREE.InstancedBufferAttribute(offset, 3, false)
-  );
-  geometry.setAttribute(
-    "aPindex",
-    new THREE.InstancedBufferAttribute(pindex, 1, false)
-  );
+  geometry.setAttribute("aOffset", new THREE.InstancedBufferAttribute(offset, 3, false));
+  geometry.setAttribute("aPindex", new THREE.InstancedBufferAttribute(pindex, 1, false));
 });
 
 /**
@@ -268,7 +258,7 @@ material = new THREE.RawShaderMaterial({
     uTime: { value: 0 },
     uTexture: { value: animalTexture },
     uTextureSize: {
-      value: new THREE.Vector2(550 * imageScale, 550 * imageScale),
+      value: new THREE.Vector2(imgWidth * imageScale, imgHeight * imageScale),
     },
     uRandomness: { value: 0 },
     //uMouse: { value: new THREE.Vector2(0, 0) },
@@ -292,7 +282,7 @@ const planeMaterial = new THREE.MeshBasicMaterial({
   wireframe: true,
 });
 const planeMesh = new THREE.Mesh(mousePlane, planeMaterial);
-planeMesh.scale.set(550, 550, 1);
+planeMesh.scale.set(imgWidth, imgHeight, 1);
 scene.add(planeMesh);
 
 planeMesh.position.z = 0;
@@ -335,18 +325,12 @@ const tick = () => {
   const deltaTime = elapsedTime - lastElapsedTime;
   lastElapsedTime = elapsedTime;
 
-  //Raycaster update
-
-  raycaster.setFromCamera(mouse, camera);
-
-  const objectsToTest = [planeMesh];
-
-  const intersects = raycaster.intersectObjects(objectsToTest);
+  //Trail update
   drawTrail();
 
-  material.uniforms.uCanvas.value = capturedTexture;
-  //Update shader time
+  //Update shader uniforms
   material.uniforms.uTime.value = elapsedTime;
+  material.uniforms.uCanvas.value = capturedTexture;
 
   // Update controls
   controls.update();
