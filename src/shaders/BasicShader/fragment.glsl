@@ -19,16 +19,16 @@ void main(){
 
     vec4 textureColor = texture2D(uTexture, vPUv);
     vec4 canvasColor = texture2D(uCanvas, vPUv);
+    
     // circular particles
     float strength = 0.5- distance(vUv, vec2(0.5));
     float alpha = smoothstep(0.0, 0.6, strength);
    
     float gray = 1.4*grayscale(textureColor.rgb);
-    strength =gray * strength * 3.0;
+    strength = gray * strength * 3.0;
     vec3 finalColor = textureColor.rgb *strength * 3.0;
 
     gl_FragColor = vec4(finalColor, alpha);
-    //gl_FragColor = canvasColor;
-    //gl_FragColor = vec4(textureColor);
+
 
 }
